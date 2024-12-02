@@ -4,6 +4,14 @@ T = TypeVar('vg_T')
 PathLike = TypeVar('PathLike', str, Any)
 AudioData = TypeVar('AudioData', bytes)
 
+class AudioSetting(TypedDict):
+    sr: int | None
+    mono: bool | None
+    n_fft: int | None
+    window_size: int | None
+    use_torch: bool = True
+    opt_settings: Dict[Any, Any]
+
 
 class Option(Generic[T]):
     def __init__(self, var: T):
@@ -28,6 +36,8 @@ class Option(Generic[T]):
         val = self.get(default=default)
         if val is None:
             self.err_if_none()
+    
+    
 
 class SafeList(List):
     def __init__(self):
@@ -36,4 +46,4 @@ class SafeList(List):
 
 
 
-__all__ = ['PathLike', 'AudioData', 'Option']
+__all__ = ['PathLike', 'AudioData', 'Option', 'AudioSetting']

@@ -1,30 +1,32 @@
 import torch
 from torchaudio import sox_effects
-from vg_types import PathLike
-from typing import NoReturn, Any
+from vg_types import AudioSetting, PathLike
+from typing import NoReturn, Any, TypedDict
  
 #Split by Voice Activity Detection
 
+class VoiceActivityDetectionSetting(TypedDict):
+    gain: int | None
+    pitch: int | None
+    effects: list[list[str]]
+
 class VoiceActivityDetection:
-    def __init__(self, file_path: PathLike,
-                 mono=True,
-                 sr=16000,
-                 gain=None,
-                 pitch=None,
-                 effects: list[list[str]] | None = None):
+    def __init__(self, file_path: PathLike, setting: AudioSetting):
         self.file_path = file_path
         self.effects: list[list[str]] = []
+        self.settings = setting
+        self.opt_settings: VoiceActivityDetectionSetting = setting['opt_settings']
 
-        if mono:
+        if setting['mono']:
             self.effects.append(['channels', '1'])
-        if sr:
-            self.effects.append(['rate', str(sr)])
-        if gain:
-            self.effects.append(['gain', '-n', str(gain)])
-        if pitch:
-            self.effects.append(['pitch', str(pitch)])
-        if effects:
-            self.effects += effects
+        if setting['sr']:
+            self.effects.append(['rate', str(setting['sr'])])
+        if setting['opt_settings']['gain']:
+            self.effects.append(['gain', '-n', str(setting['opt_settings']['gain'])])
+        if setting['opt_settings']['pitch']:
+            self.effects.append(['pitch', str(setting['opt_settings']['pitch'])])
+        if setting['opt_settings']['effects']:
+            self.effects += setting['opt_settings']['effects']
 
         return
     
@@ -32,7 +34,7 @@ class VoiceActivityDetection:
     def _load_and_apply_effects(self) -> NoReturn:
         wav, sr = sox_effects.apply_effects_file(self.file_path, self.effects)
         self.data = wav
-        self.ret_sr = sr
+        assert(self.settings['sr'] == sr)
         return
     
     #silero-vad (MIT License)
@@ -43,7 +45,7 @@ class VoiceActivityDetection:
         self.timestamps = get_speech_timestamps(wav, model, return_seconds=True)
         return
     
-    def detect(self, model_name: str) -> Any:
+    def detect(self, model_name: str = "silero_vad") -> Any:
         self._load_and_apply_effects()
         match model_name:
             case "silero_vad":
