@@ -32,14 +32,7 @@ class TimestampUnit(Enum):
     MSEC = 3
 
 class VoiceActivityDetection(AbstractPipelineElement):
-    def __init__(self, input, setting: AudioSetting):
-        # input_tensor shape: [channels, samples]
-        if isinstance(input, (torch.Tensor)):
-            self.input_tensor: Tensor = input
-        elif isinstance(input, (AnyStr)):
-            self.file_path = input
-            self.input_tensor = None
-
+    def __init__(self, setting: AudioSetting):
         self.effects: list[list[str]] = []
         self.settings = setting
         self.opt_settings: VoiceActivityDetectionSetting = setting['opt_settings']
@@ -54,8 +47,15 @@ class VoiceActivityDetection(AbstractPipelineElement):
             self.effects.append(['pitch', str(setting['opt_settings']['pitch'])])
         if setting['opt_settings']['effects']:
             self.effects += setting['opt_settings']['effects']
-
         return
+    
+    def _process_input(self, input):
+        # input_tensor shape: [channels, samples]
+        if isinstance(input, (torch.Tensor)):
+            self.input_tensor: Tensor = input
+        elif isinstance(input, (AnyStr)):
+            self.file_path = input
+            self.input_tensor = None
     
     #Ref: silero_vad/utils_vad.py
     def _load_and_apply_effects(self) -> NoReturn:
