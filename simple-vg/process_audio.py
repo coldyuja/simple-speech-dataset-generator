@@ -1,6 +1,6 @@
 import torch
 from vg_types import PathLike, AudioSetting
-from typing import NoReturn, TypedDict, Any
+from typing import Generic, NoReturn, TypedDict, Any
 from commons import AbstractPipelineElement
 
 
@@ -17,9 +17,8 @@ class CleaningAudioSetting(TypedDict):
     reduce_noise_lib: str
 
 class CleaningAudio(AbstractPipelineElement):
-    def __init__(self, input, setting: AudioSetting):
-        self.settings = setting
-        self.input = input
+    def __init__(self, setting: AudioSetting):
+        self.settings = setting  
         if self.settings['use_torch']:
             self.torch_device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.ret: Result = {}
@@ -27,6 +26,8 @@ class CleaningAudio(AbstractPipelineElement):
         self.opt_settings: CleaningAudioSetting = setting['opt_settings']
         return
     
+    def _process_input(self, input):
+        self.input = input
 
     # https://github.com/timsainb/noisereduce    
     def _use_noisereduce(self) -> NoReturn:
@@ -60,6 +61,7 @@ class CleaningAudio(AbstractPipelineElement):
     
     def get_result(self):
         return self.ret[self.latest_task]
+        
 
     
 
