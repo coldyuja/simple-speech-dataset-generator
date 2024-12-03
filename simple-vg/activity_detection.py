@@ -3,20 +3,37 @@ from torch import Tensor
 from torchaudio import sox_effects
 from vg_types import AudioSetting, PathLike
 from typing import NoReturn, Any, TypedDict, AnyStr
- 
+from commons import AbstractPipelineElement
+from enum import Enum
+
 #Split by Voice Activity Detection
+
+class Task(Enum):
+    ACTIVITY_DETECTION = 1
+    SPLIT_BY_ACTIVITY = 2
+
+class VADPipelineSetting(TypedDict):
+    vad_model: str | None
 
 class VoiceActivityDetectionSetting(TypedDict):
     gain: int | None
     pitch: int | None
     effects: list[list[str]]
+    tasks: list[Task]
+    pipeline_settings: VADPipelineSetting | None
 
 class Timestamp(TypedDict):
-    start: int
-    end: int
+    start: int | float
+    end: int | float
 
-class VoiceActivityDetection:
+class TimestampUnit(Enum):
+    SAMPLE = 1
+    SEC = 2
+    MSEC = 3
+
+class VoiceActivityDetection(AbstractPipelineElement):
     def __init__(self, input, setting: AudioSetting):
+        # input_tensor shape: [channels, samples]
         if isinstance(input, (torch.Tensor)):
             self.input_tensor: Tensor = input
         elif isinstance(input, (AnyStr)):
@@ -53,13 +70,28 @@ class VoiceActivityDetection:
     
     #silero-vad (MIT License)
     def _use_silero_vad(self) -> NoReturn:
+        # silero_vad use window_size=512 for 16KHz sr, 256 for 8KHz sr
+        self.sr = self.settings['sr']
+        if self.sr:
+            if self.sr % 16000 == 0:
+                self.window_size = 512
+            elif self.sr == 8000:
+                self.window_size = 256
+            else:
+                raise ValueError('Not Supported Sampling Rate. Please make it 8000 or 16000*n')
+        else:
+            self.window_size = 512
+            self.sr = 16000
+
+        # get_speech_timestamps needs to input which is shaped as 1D Tensor
         wav = self.data.squeeze(0)
         model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero-vad')
         get_speech_timestamps, _, _, _, _ = utils
-        self.timestamps: list[Timestamp] = get_speech_timestamps(wav, model, return_seconds=True)
+        self.timestamps: list[Timestamp] = get_speech_timestamps(wav, model)
+        self.timestamp_unit = TimestampUnit.SAMPLE
         return
     
-    def detect(self, model_name: str = "silero_vad") -> Any:
+    def detect(self, model_name: str = "silero_vad") -> int:
         self._load_and_apply_effects()
         match model_name:
             case "silero_vad":
@@ -67,6 +99,43 @@ class VoiceActivityDetection:
             case _:
                 raise ValueError(f'Unknown model_name: {model_name}')
 
-        return self.timestamps
+        return len(self.timestamps)
 
+    # if you want to override timestamps, put new timestamps into below param.
+    def split_audio(self, timestamps: list[Timestamp] = None, timestamp_unit: TimestampUnit=None) -> NoReturn:
+        if timestamps is None:
+            timestamps = self.timestamps
+        if timestamp_unit is None:
+            timestamp_unit = self.timestamp_unit
+
+        for ts in timestamps:
+            st, end = ts['start'], ts['end']
+
+
+            # location of sample at t-sec = t * sr
+            # Sampling Rate(sr) => the number of samples in 1 duration sec
+            if timestamp_unit == TimestampUnit.SEC:
+                st = st * self.sr
+                end = end * self.sr
+            elif timestamp_unit == TimestampUnit.MSEC:
+                st = st * 1000 * self.sr
+                end = end * 1000 * self.sr
+
+            
+            
+
+        return
+
+    def _execute(self):
+        for task in self.opt_settings['tasks']:
+            match task:
+                case Task.ACTIVITY_DETECTION:
+                    self.detect(self.opt_settings['pipeline_settings']['vad_model'])
+                case Task.SPLIT_BY_ACTIVITY:
+                    self.split_audio()
+        return
+
+    def get_result(self):
+
+        return
 
