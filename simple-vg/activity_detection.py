@@ -1,7 +1,8 @@
 import torch
+from torch import Tensor
 from torchaudio import sox_effects
 from vg_types import AudioSetting, PathLike
-from typing import NoReturn, Any, TypedDict
+from typing import NoReturn, Any, TypedDict, AnyStr
  
 #Split by Voice Activity Detection
 
@@ -10,9 +11,18 @@ class VoiceActivityDetectionSetting(TypedDict):
     pitch: int | None
     effects: list[list[str]]
 
+class Timestamp(TypedDict):
+    start: int
+    end: int
+
 class VoiceActivityDetection:
-    def __init__(self, file_path: PathLike, setting: AudioSetting):
-        self.file_path = file_path
+    def __init__(self, input, setting: AudioSetting):
+        if isinstance(input, (torch.Tensor)):
+            self.input_tensor: Tensor = input
+        elif isinstance(input, (AnyStr)):
+            self.file_path = input
+            self.input_tensor = None
+
         self.effects: list[list[str]] = []
         self.settings = setting
         self.opt_settings: VoiceActivityDetectionSetting = setting['opt_settings']
@@ -32,7 +42,11 @@ class VoiceActivityDetection:
     
     #Ref: silero_vad/utils_vad.py
     def _load_and_apply_effects(self) -> NoReturn:
-        wav, sr = sox_effects.apply_effects_file(self.file_path, self.effects)
+        if self.input_tensor is None:
+            wav, sr = sox_effects.apply_effects_file(self.file_path, self.effects)
+        else:
+            wav, sr = sox_effects.apply_effects_tensor(self.input_tensor, self.effects)
+
         self.data = wav
         assert(self.settings['sr'] == sr)
         return
@@ -42,7 +56,7 @@ class VoiceActivityDetection:
         wav = self.data.squeeze(0)
         model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero-vad')
         get_speech_timestamps, _, _, _, _ = utils
-        self.timestamps = get_speech_timestamps(wav, model, return_seconds=True)
+        self.timestamps: list[Timestamp] = get_speech_timestamps(wav, model, return_seconds=True)
         return
     
     def detect(self, model_name: str = "silero_vad") -> Any:
