@@ -4,6 +4,9 @@ T = TypeVar('vg_T')
 PathLike = TypeVar('PathLike', str, Any)
 AudioData = TypeVar('AudioData', bytes)
 
+In = TypeVar('PipelineInput')
+Out = TypeVar('PipelineOutput')
+
 class AudioSetting(TypedDict):
     sr: int | None
     mono: bool | None
