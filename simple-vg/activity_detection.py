@@ -64,7 +64,7 @@ class VoiceActivityDetection(AbstractPipelineElement):
         else:
             wav, sr = sox_effects.apply_effects_tensor(self.input_tensor, self.effects)
 
-        self.data = wav
+        self.data: Tensor = wav
         assert(self.settings['sr'] == sr)
         return
     
@@ -99,6 +99,7 @@ class VoiceActivityDetection(AbstractPipelineElement):
             case _:
                 raise ValueError(f'Unknown model_name: {model_name}')
 
+        self.latest_ret = self.timestamps
         return len(self.timestamps)
 
     # if you want to override timestamps, put new timestamps into below param.
@@ -107,6 +108,8 @@ class VoiceActivityDetection(AbstractPipelineElement):
             timestamps = self.timestamps
         if timestamp_unit is None:
             timestamp_unit = self.timestamp_unit
+
+        self.splitted_audio = []
 
         for ts in timestamps:
             st, end = ts['start'], ts['end']
@@ -121,9 +124,9 @@ class VoiceActivityDetection(AbstractPipelineElement):
                 st = st * 1000 * self.sr
                 end = end * 1000 * self.sr
 
-            
-            
+            self.splitted_audio.append(self.data[st:end+1])    
 
+        self.latest_ret = self.splitted_audio             
         return
 
     def _execute(self):
@@ -136,6 +139,5 @@ class VoiceActivityDetection(AbstractPipelineElement):
         return
 
     def get_result(self):
-
-        return
+        return self.latest_ret
 
