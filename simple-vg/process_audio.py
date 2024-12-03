@@ -1,6 +1,7 @@
 import torch
 from vg_types import PathLike, AudioSetting
 from typing import NoReturn, TypedDict, Any
+from commons import AbstractPipelineElement
 
 
 # Detect Overlapped Speech
@@ -12,14 +13,18 @@ from typing import NoReturn, TypedDict, Any
 class Result(TypedDict):
     reduce_noise: Any
 
-class CleaningAudio:
+class CleaningAudioSetting(TypedDict):
+    reduce_noise_lib: str
+
+class CleaningAudio(AbstractPipelineElement):
     def __init__(self, input, setting: AudioSetting):
-        self.setting = setting
+        self.settings = setting
         self.input = input
-        if self.setting['use_torch']:
+        if self.settings['use_torch']:
             self.torch_device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.ret: Result = {}
         self.latest_task = None
+        self.opt_settings: CleaningAudioSetting = setting['opt_settings']
         return
     
 
@@ -28,25 +33,32 @@ class CleaningAudio:
         import noisereduce as nr
         from noisereduce.torchgate import TorchGate as TG
         if self.torch_device:
-            tg = TG(sr=self.setting['sr'], 
-                    nonstationary=not self.setting['opt_settings']['stationary']).to(self.torch_device)
+            tg = TG(sr=self.settings['sr'], 
+                    nonstationary=not self.settings['opt_settings']['stationary']).to(self.torch_device)
             self.ret['reduce_noise'] = tg(self.input)
         else:
             self.ret['reduce_noise'] = nr.reduce_noise(y=self.input, 
-                                                       sr=self.setting['sr'],
-                                                       stationary=self.setting['opt_settings']['stationary'],
+                                                       sr=self.settings['sr'],
+                                                       stationary=self.settings['opt_settings']['stationary'],
                                                        )
         self.latest_task = 'reduce_noise'
         return
     
-    def reduce_noise(self, lib: str = 'reducenoise'):
+    def reduce_noise(self, lib: str | None = None) -> NoReturn:
+        if lib is None:
+            lib = self.opt_settings['reduce_noise_lib']
         match lib:
             case 'noisereduce':
                 self._use_noisereduce()
             case _:
                 raise ValueError(f'Unknown lib name: {lib}')
             
-    def get_final_result(self):
+    
+    def _execute(self):
+        self.reduce_noise()
+        return
+    
+    def get_result(self):
         return self.ret[self.latest_task]
 
     
