@@ -3,8 +3,16 @@ from vg_types import PathLike, AudioSetting
 from typing import Generic, NoReturn, TypedDict, Any
 from commons import AbstractPipelineElement
 
-
+# https://www.isca-archive.org/interspeech_2023/yu23c_interspeech.pdf
 # Detect Overlapped Speech
+# Target Speech/Speaker Extraction => SpeakerBeam, but has multihead for separation for each speaker
+# OSD(Overlapped Speech Detection) => ?, 
+# Not Implemented Yet 
+#
+# I took https://github.com/desh2608/gss but it requires multichannel source or RTTM file which must contain timestamps for all speaker
+# So, i tought that it cannot be used for general purpose since it requires human-tagging task(RTTM)
+
+
 
 
 # Cleaning Audio -> Noise Reduction
