@@ -15,6 +15,7 @@ class Result(TypedDict):
 
 class CleaningAudioSetting(TypedDict):
     reduce_noise_lib: str
+    stationary: bool
 
 class CleaningAudio(AbstractPipelineElement):
     def __init__(self, setting: AudioSetting):
@@ -29,18 +30,19 @@ class CleaningAudio(AbstractPipelineElement):
     def _process_input(self, input):
         self.input = input
 
-    # https://github.com/timsainb/noisereduce    
+    # https://github.com/timsainb/noisereduce
+    # Features are not fully implemented currently.
     def _use_noisereduce(self) -> NoReturn:
         import noisereduce as nr
         from noisereduce.torchgate import TorchGate as TG
         if self.torch_device:
             tg = TG(sr=self.settings['sr'], 
-                    nonstationary=not self.settings['opt_settings']['stationary']).to(self.torch_device)
+                    nonstationary=not self.opt_settings['stationary']).to(self.torch_device)
             self.ret['reduce_noise'] = tg(self.input)
         else:
             self.ret['reduce_noise'] = nr.reduce_noise(y=self.input, 
                                                        sr=self.settings['sr'],
-                                                       stationary=self.settings['opt_settings']['stationary'],
+                                                       stationary=self.opt_settings['stationary'],
                                                        )
         self.latest_task = 'reduce_noise'
         return
