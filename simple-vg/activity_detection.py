@@ -1,8 +1,8 @@
 import torch
 from torch import Tensor
 from torchaudio import sox_effects
-from vg_types import AudioSetting, PathLike
-from typing import NoReturn, Any, TypedDict, AnyStr
+from vg_types import AudioSetting, PathLike, TensorOrPath
+from typing import Generic, NewType, NoReturn, Any, TypedDict, AnyStr, Union
 from commons import AbstractPipelineElement
 from enum import Enum
 
@@ -30,6 +30,8 @@ class TimestampUnit(Enum):
     SAMPLE = 1
     SEC = 2
     MSEC = 3
+
+
 
 class VoiceActivityDetection(AbstractPipelineElement):
     def __init__(self, setting: AudioSetting):
