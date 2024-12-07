@@ -43,6 +43,7 @@ class Option(Generic[T]):
         val = self.get(default=default)
         if val is None:
             self.err_if_none()
+        return val
     
     
 
