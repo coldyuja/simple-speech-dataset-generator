@@ -20,3 +20,17 @@ class AbstractPipelineElement(Generic[In, Out]):
         self._process_input(input)
         self._execute()
         return self.get_result()
+    
+
+class ModelWrapper:
+    def __init__(self):
+        return
+    
+    def _inference(self):
+        raise NotImplementedError(NOT_IMPL_ERR_MSG)
+    
+    def _train(self):
+        raise NotImplementedError(NOT_IMPL_ERR_MSG)
+    
+    def get_result(self):
+        raise NotImplementedError(NOT_IMPL_ERR_MSG)
