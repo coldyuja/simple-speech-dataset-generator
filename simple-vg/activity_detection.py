@@ -32,7 +32,6 @@ class TimestampUnit(Enum):
     MSEC = 3
 
 
-
 class VoiceActivityDetection(AbstractPipelineElement):
     def __init__(self, setting: AudioSetting):
         self.effects: list[list[str]] = []
@@ -85,7 +84,7 @@ class VoiceActivityDetection(AbstractPipelineElement):
             self.window_size = 512
             self.sr = 16000
 
-        # get_speech_timestamps needs to input which is shaped as 1D Tensor
+        # get_speech_timestamps needs to take input which is shaped as 1D Tensor
         wav = self.data.squeeze(0)
         model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero-vad')
         get_speech_timestamps, _, _, _, _ = utils

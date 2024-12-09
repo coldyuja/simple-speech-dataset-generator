@@ -26,7 +26,7 @@ class VGPipeline:
         return
     
     # I wanted to give type hints more detail, but [T] = Generic[T] does not supported python 3.10
-    # If i use Generic[T], code will be messy. so that is why i didnt this type hinting
+    # If i use Generic[T], code will be messy. so that's why i didnt this type hinting
     def _run_sequential(self, input: Any) -> Any:
         mid_ret = None
         for p in self.seq_pipes:
