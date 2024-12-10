@@ -3,20 +3,65 @@ from typing import TypedDict
 from torch import Tensor
 from ..commons import ModelWrapper
 from torch.utils.data import Dataset, DataLoader
+from torch.nn.utils.rnn import pad_sequence
+import importlib
+from vg_types import ROOT_PATH
+import os
+
+class SepReformerModels(Enum):
+    SepReformer_Base_WSJ0 = 0
+    SepReformer_Large_DM_WHAM = 1
+    SepReformer_Large_DM_WHAMR = 2
+    SepReformer_Large_DM_WSJ0 = 3
 
 class SepReformerSetting(TypedDict):
     sr: int
     chunk_max_len: int
     batch_size: int
     n_speaker: int = 2
+    model: SepReformerModels
+
 
 class SepReformerDataset(Dataset):
-    def __init__(self, input: Tensor, chunk_max_len: int):
-        self.max_len = chunk_max_len
-        self.input_data = input
+    def __init__(self, input: list[Tensor] | Tensor, chunk_max_len: int):
+        # Input tensor shape: (B, C?, S)
 
-    def __getitem__(self, index):
+        if isinstance(input, list):
+            # Really does it need to check having multichannel?
+            len_shape = len(input.shape)
+            if len_shape == 2:
+                self.mono = True
+            elif len_shape == 3:
+                self.mono = False
+            else:
+                raise KeyError(f"Unknown tensor shape: {input.shape}")
+
+            input = pad_sequence(input, batch_first=True)
         
+        self.max_len = chunk_max_len
+        self.input_data: Tensor = input
+        self.curr_data_idx = 0
+        self.curr_sample_idx = 0
+        self.sample_len = input.shape[-1]
+
+
+    def __getitem__(self, index) -> Tensor:
+        ret_data = None
+        if self.max_len is None:
+            ret_data = self.input_data[self.curr_data_idx]
+            self.curr_data_idx += 1
+        else:
+            if self.max_len > len(self.input_data[self.curr_data_idx]) - self.curr_sample_idx+1:
+                ret_data = self.input_data[self.curr_data_idx, ..., self.curr_sample_idx:]
+                self.curr_sample_idx = 0
+                self.curr_data_idx += 1
+            else:
+                next_sample_idx = self.curr_sample_idx + self.max_len
+                ret_data = self.input_data[self.curr_data_idx, ..., self.curr_sample_idx:next_sample_idx]
+                self.curr_sample_idx = next_sample_idx
+        
+        return ret_data
+    
 
 class SepReformerWrapper(ModelWrapper):
     # SepReformer is under Apache 2.0 License
@@ -24,6 +69,7 @@ class SepReformerWrapper(ModelWrapper):
     from ...SepReformer.models.SepReformer_Large_DM_WHAM import main as sepreformer_l_dm_wham
     from ...SepReformer.models.SepReformer_Large_DM_WHAMR import main as sepreformer_l_dm_whamr
     from ...SepReformer.models.SepReformer_Large_DM_WSJ0 import main as sepreformer_l_dm_wsj0
+
 
     # Memo for wrapper of official SepReformer testing
     # Logging, calc losses, metrics and other codes or configs that not need to inference are excluded.
@@ -69,19 +115,30 @@ class SepReformerWrapper(ModelWrapper):
     # wave_dict_mix <- util_dataset_parse_scps() <- wave_scp_mix <- scp_config_mix <- conf['dataset']['mixture'] <- conf <- config.yaml
     #
     # max_len <- conf['dataset']['max_len'] <- Which basis used to derive max_len?
+    # n(channel)?
     #
-    # Object: librosa.load(path) | Tensor = (Tensor(n, )) -> slice(dur=max_len) -> inference -> concat() -> [sep_speech]
+    # Object: librosa.load(path) | Tensor = (Tensor(n, )) -> slice(dur=max_len) | window? -> inference -> concat() -> [sep_speech]
 
 
     def __init__(self, input, settings: SepReformerSetting):
         self.settings = settings
+        self.dataset = SepReformerDataset(input, settings['chunk_max_len'])
+        self.dataloader = DataLoader(self.dataset, batch_size=settings['batch_size'], collate_fn=sepreformer_collate)
         
+
         return
 
-
+    def _load_model_from_chkpoint(self):
+        yaml_path = os.path.join(ROOT_PATH, '')
+        model_mod = importlib.import_module(f'...SepReformer.models.{settings['model']}')
+        model = model_mod.Model()
+        checkpoint_dict = torch.load(latest_checkpoint_file, map_location=location)
+        model.load_state_dict(checkpoint_dict['model_state_dict'], strict=False)
 
     def _inference(self):
-        return super()._inference()
+
+
+        return
     
     def _train(self):
         # Currently, training is not supported. (implement later)
@@ -89,3 +146,7 @@ class SepReformerWrapper(ModelWrapper):
     
     def get_result(self):
         return super().get_result()
+
+
+def sepreformer_collate(inp):
+    return pad_sequence(inp, batch_first=True)
