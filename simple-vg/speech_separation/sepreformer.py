@@ -4,7 +4,7 @@ from torch import Tensor
 from ..commons import ModelWrapper
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
-import importlib
+import importlib, pathlib
 from vg_types import ROOT_PATH
 import os
 
@@ -129,7 +129,7 @@ class SepReformerWrapper(ModelWrapper):
         return
 
     def _load_model_from_chkpoint(self):
-        yaml_path = os.path.join(ROOT_PATH, '')
+        yaml_path = os.path.join(ROOT_PATH, f'SepReformer/models/{self.settings['model']}', 'configs.yaml')
         model_mod = importlib.import_module(f'...SepReformer.models.{settings['model']}')
         model = model_mod.Model()
         checkpoint_dict = torch.load(latest_checkpoint_file, map_location=location)

@@ -6,7 +6,7 @@ T = TypeVar('vg_T')
 PathLike = TypeVar('PathLike', str, Any)
 AudioData = TypeVar('AudioData', bytes)
 TensorOrPath = TypeVar('TensorOrPath', AnyStr, Tensor)
-ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
+ROOT_PATH = pathlib.Path(os.path.dirname(os.path.abspath(__file__))).parent[0]
 
 
 In = TypeVar('PipelineInput')
