@@ -1,11 +1,12 @@
 from typing import *
 from torch import Tensor
+import os
 
 T = TypeVar('vg_T')
 PathLike = TypeVar('PathLike', str, Any)
 AudioData = TypeVar('AudioData', bytes)
 TensorOrPath = TypeVar('TensorOrPath', AnyStr, Tensor)
-
+ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 In = TypeVar('PipelineInput')
