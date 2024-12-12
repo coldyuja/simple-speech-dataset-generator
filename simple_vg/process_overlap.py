@@ -3,6 +3,8 @@ from typing import Dict, TypedDict
 from commons import AbstractPipelineElement, ModelWrapper
 from speech_separation.sepreformer import SepReformerModels, SepReformerSetting, SepReformerWrapper
 from vg_types import AudioSetting
+import copy
+
 
 # https://www.isca-archive.org/interspeech_2023/yu23c_interspeech.pdf
 # Detect Overlapped Speech
@@ -35,6 +37,7 @@ class ProcessOverlappedAudioSettings(TypedDict):
 
 class ProcessOverlappedAudio(AbstractPipelineElement):
     def __init__(self, settings: AudioSetting):
+        settings = copy.deepcopy(settings)
         self.settings: ProcessOverlappedAudioSettings = settings['opt_settings']
         self.audio_settings = settings
         return

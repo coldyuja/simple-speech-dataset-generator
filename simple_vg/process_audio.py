@@ -1,3 +1,4 @@
+import copy
 from enum import Enum
 import torch
 from os import PathLike
@@ -76,6 +77,7 @@ class LoadAudioSettings(TypedDict):
 
 class LoadAudioFile(AbstractPipelineElement):
     def __init__(self, settings: AudioSetting):
+        settings = copy.deepcopy(settings)
         self.settings = settings
         self.load_settings: LoadAudioSettings = settings['opt_settings']
         return

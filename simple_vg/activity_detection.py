@@ -1,3 +1,4 @@
+import copy
 import torch
 from torch import Tensor
 from torchaudio import sox_effects
@@ -35,6 +36,7 @@ class TimestampUnit(Enum):
 class VoiceActivityDetection(AbstractPipelineElement):
     def __init__(self, setting: AudioSetting):
         self.effects: list[list[str]] = []
+        settings = copy.deepcopy(settings)
         self.settings = setting
         self.opt_settings: VoiceActivityDetectionSetting = setting['opt_settings']
 

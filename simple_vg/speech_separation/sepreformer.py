@@ -1,3 +1,4 @@
+import copy
 from enum import Enum
 from typing import Any, TypedDict
 import torch
@@ -119,6 +120,7 @@ class SepReformerWrapper(ModelWrapper):
 
 
     def __init__(self, input, settings: SepReformerSetting):
+        settings = copy.deepcopy(settings)
         self.settings = settings
         self.dataset = SepReformerDataset(input, settings['chunk_max_len'])
         self.dataloader = DataLoader(self.dataset, batch_size=settings['batch_size'], collate_fn=sepreformer_collate)
