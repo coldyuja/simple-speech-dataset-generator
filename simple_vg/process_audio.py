@@ -1,9 +1,12 @@
+from enum import Enum
 import torch
 from os import PathLike
 from vg_types import AudioSetting
 from typing import Generic, NoReturn, TypedDict, Any
 from commons import AbstractPipelineElement
 from utils import get_torch_device
+from torchaudio import sox_effects
+from torch import Tensor
 
 # Cleaning Audio -> Noise Reduction
 # https://github.com/timsainb/noisereduce    
@@ -63,7 +66,48 @@ class CleaningAudio(AbstractPipelineElement):
         return self.ret[self.latest_task]
         
 
+class LoadAudioBackends(Enum):
+    TORCH_SOX = 0
+    LIBROSA = 1
+
+class LoadAudioSettings(TypedDict):
+    backend: LoadAudioBackends
+    effects: Any
+
+class LoadAudioFile(AbstractPipelineElement):
+    def __init__(self, settings: AudioSetting):
+        self.settings = settings
+        self.load_settings: LoadAudioSettings = settings['opt_settings']
+        return
     
+    def _process_input(self, input):
+        if not isinstance(input, (str, PathLike)):
+            raise ValueError('input must be str or PathLike containing file path')
+        
+        self.input_path = input
+    
+    def _execute(self):
+        backend = self.load_settings['backend']
+        match backend:
+            case LoadAudioBackends.TORCH_SOX:
+                self._use_torch_sox()
+            case LoadAudioBackends.LIBROSA:
+                self._use_librosa()
+            case _:
+                raise KeyError(f'Unknown backend name: {backend}')
+                
+    
+    def get_result(self) -> tuple[Tensor, int]:
+        return self.result
+    
+    def _use_torch_sox(self):
+        wav, sr = sox_effects.apply_effects_file(self.input_path, self.load_settings['effects'])
+        self.result = (wav, sr)
+        return
+    
+    def _use_librosa(self):
+        raise NotImplementedError()
+
 
 
 
