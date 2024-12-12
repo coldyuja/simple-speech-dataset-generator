@@ -1,6 +1,9 @@
 from typing import Any, Never, NoReturn, TypeVar
+
+import torch
 from vg_types import *
 import os
+from os import PathLike
 import sys
 
 init_dir_names = [
@@ -43,3 +46,6 @@ def convert_to_audio(file_path: PathLike) -> NoReturn:
         f'ffmpeg -i {file_path} -f mp3 -vn -async 1 {os.path.join(init_dir_names[1], names[0]+'.mp3')}'
     )
     return
+
+def get_torch_device() -> torch.device:
+    return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
