@@ -1,12 +1,15 @@
-from typing import TypedDict
-
-from torch import Tensor
+from enum import Enum
+from typing import Any, TypedDict
+import torch
+from torch import Tensor, nn
 from ..commons import ModelWrapper
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import importlib, pathlib
 from vg_types import ROOT_PATH
 import os
+from os import PathLike
+from utils import get_torch_device
 
 class SepReformerModels(Enum):
     SepReformer_Base_WSJ0 = 0
@@ -20,7 +23,7 @@ class SepReformerSetting(TypedDict):
     batch_size: int
     n_speaker: int = 2
     model: SepReformerModels
-
+    distributed_gpu: bool = False
 
 class SepReformerDataset(Dataset):
     def __init__(self, input: list[Tensor] | Tensor, chunk_max_len: int):
@@ -65,11 +68,6 @@ class SepReformerDataset(Dataset):
 
 class SepReformerWrapper(ModelWrapper):
     # SepReformer is under Apache 2.0 License
-    from ...SepReformer.models.SepReformer_Base_WSJ0 import main as sepreformer_b_wsj0
-    from ...SepReformer.models.SepReformer_Large_DM_WHAM import main as sepreformer_l_dm_wham
-    from ...SepReformer.models.SepReformer_Large_DM_WHAMR import main as sepreformer_l_dm_whamr
-    from ...SepReformer.models.SepReformer_Large_DM_WSJ0 import main as sepreformer_l_dm_wsj0
-
 
     # Memo for wrapper of official SepReformer testing
     # Logging, calc losses, metrics and other codes or configs that not need to inference are excluded.
@@ -124,29 +122,58 @@ class SepReformerWrapper(ModelWrapper):
         self.settings = settings
         self.dataset = SepReformerDataset(input, settings['chunk_max_len'])
         self.dataloader = DataLoader(self.dataset, batch_size=settings['batch_size'], collate_fn=sepreformer_collate)
+        self.device = get_torch_device()
+        self.model = self._load_model_from_chkpoint()
+        return
+
+    def _load_config_yaml(self, yaml_path: PathLike):
+        # From SepReformer/.../util_system.py
+        from ...SepReformer.utils.util_system import parse_yaml
+        return parse_yaml(yaml_path)
+
+    def _load_model_from_chkpoint(self, custom_chk_path: PathLike = None):
+        model_root_path = os.path.join(ROOT_PATH, f'SepReformer/models/{self.settings['model'].name}')
+        yaml_path = os.path.join(model_root_path, 'configs.yaml')
+        yaml_conf = self._load_config_yaml(yaml_path)
+        config = yaml_conf['config']
+
+        # From SepReformer/.../engine.py
+        self.pretrain_weights_path = os.path.join(model_root_path, "log", "pretrain_weights")
+        os.makedirs(self.pretrain_weights_path, exist_ok=True)
+        self.scratch_weights_path = os.path.join(model_root_path, "log", "scratch_weights")
+        os.makedirs(self.scratch_weights_path, exist_ok=True)
+        self.checkpoint_path = self.pretrain_weights_path if any(file.endswith(('.pt', '.pt', '.pkl')) for file in os.listdir(self.pretrain_weights_path)) else self.scratch_weights_path
         
+        model_mod = importlib.import_module(f'...SepReformer.models.{self.settings['model'].name}.model')
+        model: nn.Module = model_mod.Model(**config['model'])
+        checkpoint_dict = torch.load(self.checkpoint_path, map_location=self.device)
+        model.load_state_dict(checkpoint_dict['model_state_dict'], strict=False)
+        model.to(self.device)
+        return model
+
+    def _test(self):
 
         return
 
-    def _load_model_from_chkpoint(self):
-        yaml_path = os.path.join(ROOT_PATH, f'SepReformer/models/{self.settings['model']}', 'configs.yaml')
-        model_mod = importlib.import_module(f'...SepReformer.models.{settings['model']}')
-        model = model_mod.Model()
-        checkpoint_dict = torch.load(latest_checkpoint_file, map_location=location)
-        model.load_state_dict(checkpoint_dict['model_state_dict'], strict=False)
-
+    @torch.inference_mode
     def _inference(self):
-
-
+        self.model.eval()
+        ret = []
+        for data in self.dataloader:
+            data.to(self.device)
+            pred = self.model(data)
+            print(pred.shape) # For Testing
+            ret.append(pred)
+        self.result = ret
         return
     
     def _train(self):
         # Currently, training is not supported. (implement later)
         return super()._train()
     
-    def get_result(self):
-        return super().get_result()
+    def get_result(self) -> Any:
+        return self.result
 
 
-def sepreformer_collate(inp):
+def sepreformer_collate(inp) -> Tensor:
     return pad_sequence(inp, batch_first=True)
