@@ -29,9 +29,12 @@ class VGPipeline:
     # If i use Generic[T], code will be messy. so that's why i didnt this type hinting
     def _run_sequential(self, input: Any) -> Any:
         mid_ret = None
-        for p in self.seq_pipes:
-            p._process_input(input)
-            p._execute()
-            mid_ret = p.get_result()
+        for i, p in enumerate(self.seq_pipes):
+            try:
+                p._process_input(input)
+                p._execute()
+                mid_ret = p.get_result()
+            except Exception as e:
+                print(f'Exception Occurred during processing pipeline. \nIndex={i} \nPipeline={p.__name__} \nError:\n{e}\n')
 
         return mid_ret
