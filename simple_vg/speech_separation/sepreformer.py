@@ -156,7 +156,7 @@ class SepReformerWrapper(ModelWrapper):
         return
 
     @torch.inference_mode
-    def _inference(self):
+    def inference(self):
         self.model.eval()
         ret = []
         for data in self.dataloader:
@@ -167,9 +167,9 @@ class SepReformerWrapper(ModelWrapper):
         self.result = ret
         return
     
-    def _train(self):
+    def train(self):
         # Currently, training is not supported. (implement later)
-        return super()._train()
+        return super().train()
     
     def get_result(self) -> Any:
         return self.result
