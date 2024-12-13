@@ -1,7 +1,7 @@
-from typing import Any, Never, NoReturn, TypeVar
-
+from typing import Any, NoReturn, TypeVar
+import yaml
 import torch
-from vg_types import *
+from .vg_types import *
 import os
 from os import PathLike
 import sys
@@ -43,9 +43,30 @@ def convert_to_audio(file_path: PathLike) -> NoReturn:
             return
     
     os.system(
-        f'ffmpeg -i {file_path} -f mp3 -vn -async 1 {os.path.join(init_dir_names[1], names[0]+'.mp3')}'
+        f"ffmpeg -i {file_path} -f mp3 -vn -async 1 {os.path.join(init_dir_names[1], names[0]+'.mp3')}"
     )
     return
 
 def get_torch_device() -> torch.device:
     return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    
+#From SepReformer/utils/util_system.py
+def parse_yaml(path):
+    """
+    Parse and return the contents of a YAML file.
+
+    Args:
+        path (str): Path to the YAML file to be parsed.
+
+    Returns:
+        dict: A dictionary containing the parsed contents of the YAML file.
+
+    Raises:
+        FileNotFoundError: If the provided path does not point to an existing file.
+    """
+    try:
+        with open(path, 'r') as yaml_file:
+            config_dict = yaml.full_load(yaml_file)
+        return config_dict
+    except FileNotFoundError:
+        raise
