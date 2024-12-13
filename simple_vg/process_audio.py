@@ -2,10 +2,10 @@ import copy
 from enum import Enum
 import torch
 from os import PathLike
-from vg_types import AudioSetting
+from .vg_types import AudioSetting
 from typing import Generic, NoReturn, TypedDict, Any
-from commons import AbstractPipelineElement
-from utils import get_torch_device
+from .commons import AbstractPipelineElement
+from .utils import get_torch_device
 from torchaudio import sox_effects
 from torch import Tensor
 
@@ -74,6 +74,7 @@ class LoadAudioBackends(Enum):
 class LoadAudioSettings(TypedDict):
     backend: LoadAudioBackends
     effects: Any
+    channel_first: bool
 
 class LoadAudioFile(AbstractPipelineElement):
     def __init__(self, settings: AudioSetting):
@@ -103,7 +104,23 @@ class LoadAudioFile(AbstractPipelineElement):
         return self.result
     
     def _use_torch_sox(self):
-        wav, sr = sox_effects.apply_effects_file(self.input_path, self.load_settings['effects'])
+        if isinstance(self.load_settings['effects'], list):
+            e_channel_exist = False
+            e_sr_exist = False
+            for effect in self.load_settings['effects']:
+                if len(effect) == 0:
+                    continue
+                if effect[0] == 'channels':
+                    e_channel_exist = True
+                if effect[0] == 'rate':
+                    e_sr_exist = True
+
+            if not e_channel_exist and self.settings['mono']:
+                self.load_settings['effects'].append(['channels', '1'])
+            if not e_sr_exist and self.settings['sr']:
+                self.load_settings['effects'].append(['rate', str(self.settings['sr'])])
+
+        wav, sr = sox_effects.apply_effects_file(self.input_path, self.load_settings['effects'], channels_first=self.load_settings['channel_first'])
         self.result = (wav, sr)
         return
     
