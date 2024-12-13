@@ -2,9 +2,9 @@ import copy
 import torch
 from torch import Tensor
 from torchaudio import sox_effects
-from vg_types import AudioSetting, PathLike, TensorOrPath
+from .vg_types import AudioSetting
 from typing import Generic, NewType, NoReturn, Any, TypedDict, AnyStr, Union
-from commons import AbstractPipelineElement
+from .commons import AbstractPipelineElement
 from enum import Enum
 
 #Split by Voice Activity Detection

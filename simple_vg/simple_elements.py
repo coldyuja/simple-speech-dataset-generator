@@ -1,5 +1,5 @@
 from typing import Any, Callable, TypeVar
-from commons import AbstractPipelineElement
+from .commons import AbstractPipelineElement
 
 input_t = TypeVar('Input')
 output_t = TypeVar('Output')

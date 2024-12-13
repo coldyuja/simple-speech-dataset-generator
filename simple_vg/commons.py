@@ -1,5 +1,5 @@
 from typing import Generic
-from vg_types import In, Out
+from .vg_types import In, Out
 
 NOT_IMPL_ERR_MSG = 'You MUST implement this method!!'
 
