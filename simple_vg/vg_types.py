@@ -4,9 +4,7 @@ from torch import Tensor
 import os
 
 T = TypeVar('vg_T')
-AudioData = TypeVar('AudioData', bytes)
-TensorOrPath = TypeVar('TensorOrPath', AnyStr, Tensor)
-ROOT_PATH = pathlib.Path(os.path.dirname(os.path.abspath(__file__))).parent[0]
+ROOT_PATH = pathlib.Path(os.path.abspath(__file__)).parents[0]
 
 
 In = TypeVar('PipelineInput')
@@ -52,7 +50,4 @@ class SafeList(List):
     def __init__(self):
         super().__init__()
 
-
-
-
-__all__ = ['PathLike', 'AudioData', 'Option', 'AudioSetting']
+__all__ = ['Option', 'AudioSetting']
