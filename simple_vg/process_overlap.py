@@ -1,8 +1,8 @@
 from enum import Enum
 from typing import Dict, TypedDict
-from commons import AbstractPipelineElement, ModelWrapper
-from speech_separation.sepreformer import SepReformerModels, SepReformerSetting, SepReformerWrapper
-from vg_types import AudioSetting
+from .commons import AbstractPipelineElement, ModelWrapper
+from .speech_separation.sepreformer import SepReformerModels, SepReformerSetting, SepReformerWrapper
+from .vg_types import AudioSetting
 import copy
 
 
@@ -23,7 +23,11 @@ class ProcessOverlappedAudioTasks(Enum):
     SEPARATE_AUDIO = 0
     DETECT_OVERLAPPED = 1
 
+class SeparateOverlappedModels(Enum):
+    SepReformer = 0
+
 class SeparateOverlappedSettings(TypedDict):
+    model: SepReformerModels
     model_settings: SepReformerSetting
 
 class DetectOverlappedSettings(TypedDict):
@@ -46,9 +50,9 @@ class ProcessOverlappedAudio(AbstractPipelineElement):
         return
     
     def _separate_overlapped_audio(self):
-        sep_name = self.settings['separation_settings']['model_settings'].__name__
+        sep_name = self.settings['separation_settings']['model']
         match sep_name:
-            case 'SepReformerSettings':
+            case SeparateOverlappedModels.SepReformer:
                 self._use_sepreformer()
             case _:
                 raise KeyError(f'Unknown Settings: {sep_name}')
@@ -69,6 +73,9 @@ class ProcessOverlappedAudio(AbstractPipelineElement):
         return self.result
     
     def _use_sepreformer(self):
+        if self.settings['separation_settings']['model_settings']['sr'] is None:
+            self.settings['separation_settings']['model_settings']['sr'] = self.audio_settings['sr']
+
         self.model = SepReformerWrapper(self.input, self.settings['separation_settings']['model_settings'])
         self.model.inference()
         self.result = self.model.get_result()
