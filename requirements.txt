@@ -1,1 +1,2 @@
 whisper
+PyYAML==6.0.1
