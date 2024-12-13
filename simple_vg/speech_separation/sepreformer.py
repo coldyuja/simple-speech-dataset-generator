@@ -24,7 +24,7 @@ class SepReformerSetting(TypedDict):
     sr: int
     chunk_max_len: int
     batch_size: int
-    n_speaker: int = 2
+    n_speaker: int # But, only n_speaker=2 tested on paper. 
     model: SepReformerModels
     distributed_gpu: bool = False
 
@@ -78,6 +78,9 @@ class SepReformerWrapper(ModelWrapper):
     def __init__(self, input, settings: SepReformerSetting):
         settings = copy.deepcopy(settings)
         self.settings = settings
+        if settings['distributed_gpu']:
+            print("Warning: Distributed GPU is not currenly supported. Only single gpu will be used.")
+
         self.dataset = SepReformerDataset(input, settings['chunk_max_len'])
         self.dataloader = DataLoader(self.dataset, batch_size=settings['batch_size'], collate_fn=sepreformer_collate)
         self.device = get_torch_device()
@@ -104,7 +107,7 @@ class SepReformerWrapper(ModelWrapper):
         self.checkpoint_path = os.path.join(self.checkpoint_path, chkpoint_list[-1])
     
         model_mod = importlib.import_module(f'.models.{self.settings["model"].name}.model', 'simple_vg.speech_separation')
-        model: nn.Module = model_mod.Model(**config['model'])
+        model: nn.Module = model_mod.Model(**config['model'], n_speaker=self.settings['n_speaker'])
         checkpoint_dict = torch.load(self.checkpoint_path, map_location=self.device)
         model.load_state_dict(checkpoint_dict['model_state_dict'], strict=False)
         model = model.to(self.device)
