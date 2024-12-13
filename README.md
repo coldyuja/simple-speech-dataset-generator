@@ -2,6 +2,11 @@
 
 ## Under construction.
 
+### TODO List
+- [ ] Make inferencing run on distributed gpu
+- [ ] Automatic speaker annotations for known who already tagged by user
+- [ ] Model(Detection, Separation, etc..) Training 
+
 ### License
 Basically, This project is under MIT.
 However, in some implementation, license may be restricted.
