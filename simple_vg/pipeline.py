@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Any
 from .commons import AbstractPipelineElement
 from torch import Tensor
+import torch
 import numpy as np
 
 class ExecuteType(Enum):
@@ -29,8 +30,9 @@ class VGPipeline:
     
     # I wanted to give type hints more detail, but [T] = Generic[T] does not supported python 3.10
     # If i use Generic[T], code will be messy. so that's why i didnt type hinting on this method
-    def _run_sequential(self, input: Any, dbg=False) -> Any:
+    def _run_sequential(self, input: Any, dbg=False, cuda_empty_cache=True) -> Any:
         mid_ret = input
+        cuda_enabled = torch.cuda.is_available()
         for i, p in enumerate(self.seq_pipes):
             p_name = p.__class__.__qualname__
             try:
@@ -42,5 +44,7 @@ class VGPipeline:
             except Exception as e:
                 print(f'Exception Occurred during processing pipeline. \nIndex={i} \nPipeline={p_name}\n')
                 raise e
+            if cuda_enabled and cuda_empty_cache:
+                torch.cuda.empty_cache()
         return mid_ret
     
