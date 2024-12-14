@@ -81,9 +81,7 @@ class WhisperDataset(Dataset):
             if len(self.raw_input.shape) > 2:
                 s = self.raw_input.shape
                 self.raw_input = self.raw_input.view(math.prod(s[:-1]), s[-1])
-            print(self.raw_input.shape)
             self.input = whisper.log_mel_spectrogram(self.raw_input, self.settings['n_mels'])
-            print(self.input.shape)
         elif isinstance(self.raw_input, (list)):
             if len(self.raw_input) == 0:
                 raise ValueError('Input cannot empty!')
@@ -110,7 +108,6 @@ class WhisperDataset(Dataset):
             ret.append([data_idx, ret[-1][1], sample_len])
         elif len(ret) == 0:
             ret.append([data_idx, 0, sample_len])
-        
         return ret
 
     def __len__(self):
@@ -157,7 +154,7 @@ class WhisperWrapper(ModelWrapper):
         return
     
     def get_result(self) -> list[list[DecodingResult]]:
-        print(self.result)
+
         return self.result
         
 def _collate(inp):
