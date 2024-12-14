@@ -105,7 +105,10 @@ class SepReformerWrapper(ModelWrapper):
 
         chkpoint_list = sorted([filename for filename in os.listdir(self.checkpoint_path)], key=lambda name: int(name.split('.')[1]))
         self.checkpoint_path = os.path.join(self.checkpoint_path, chkpoint_list[-1])
-    
+
+        if self.settings['model'] != SepReformerModels.SepReformer_Base_WSJ0:
+            raise NotImplementedError('This Model is not published by author currently. Only SepReformer-B can be used.')
+
         model_mod = importlib.import_module(f'.models.{self.settings["model"].name}.model', 'simple_vg.speech_separation')
         config['model']['num_spks'] = self.settings['n_speaker']
 
