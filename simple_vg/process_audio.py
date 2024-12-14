@@ -3,11 +3,13 @@ from enum import Enum
 import torch
 from os import PathLike
 from .vg_types import AudioSetting
-from typing import Generic, NoReturn, TypedDict, Any
+from typing import Dict, Generic, NoReturn, Optional, TypedDict, Any
 from .commons import AbstractPipelineElement
 from .utils import get_torch_device
 from torchaudio import sox_effects
 from torch import Tensor
+import torio
+from torio.io import CodecConfig
 
 # Cleaning Audio -> Noise Reduction
 # https://github.com/timsainb/noisereduce    
@@ -127,6 +129,67 @@ class LoadAudioFile(AbstractPipelineElement):
     def _use_librosa(self):
         raise NotImplementedError()
 
+class SaveAudioSettings(TypedDict):
+    encoder: Optional[str] = None
+    encoder_option: Optional[Dict[str, str]] = None
+    encoder_sample_rate: Optional[int] = None
+    encoder_num_channels: Optional[int] = None
+    encoder_format: Optional[str] = None
+    codec_config: Optional[CodecConfig] = None
+    filter_desc: Optional[str] = None
+
+class SaveAudioFiles(AbstractPipelineElement):
+    def __init__(self, settings: AudioSetting):
+        self.settings = settings
+        self.enc_settings: SaveAudioSettings = settings['opt_settings']
+    
+    # list[audio: list[Tensor], out_path: list[str], new_settings: Optional[AudioSetting]] -> In
+    def _process_input(self, input):
+
+        if len(input) < 2:
+            raise ValueError('Input must be given audio tensor and output path at least')
+        elif len(input) >= 2:
+            self.audio = input[0]
+            self.out_path = input[1]
+            if len(input) >= 3:
+                self.settings = input[2]
+
+        
+
+    def _execute(self):
+        for data, path in zip(self.audio, self.out_path):
+            if self.settings.get('n_channels') is None:
+                n_ch = 1
+                if len(data.shape) == 2:
+                    n_ch = data.shape[0]
+
+                elif is_mono := self.settings.get('mono') is not None:
+                    if not is_mono:
+                        n_ch = 2
+
+                self.settings['n_channels'] = n_ch
+
+            encoder = torio.io.StreamingMediaEncoder(path)
+            encoder.add_audio_stream(sample_rate=self.settings['sr'], num_channels=self.settings['n_channels'], **self.enc_settings)
+            encoder.open()
+            # torio.io.StreamingMediaEncoder.write_audio_chunk() Input shape: (S, C)
+            if len(data.shape) == 1:
+                data = data.unsqueeze(dim=-1)
+            elif len(data.shape) == 2:
+                data = data.transpose(1, 0)
+            else:
+                raise ValueError('Output Audio Tensor dimension size must be 1 or 2')
+    
+            for c_i in range(self.settings['n_channels']):
+                encoder.write_audio_chunk(c_i, data[..., c_i].unsqueeze(dim=-1))
+            encoder.flush()
+            encoder.close()
+
+    
+    # Out -> None
+    def get_result(self):
+        return None
+    
 
 
 
