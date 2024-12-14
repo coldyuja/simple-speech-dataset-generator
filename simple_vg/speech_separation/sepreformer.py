@@ -7,7 +7,7 @@ from torch import Tensor, nn
 from ..commons import ModelWrapper
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
-import importlib, pathlib
+import importlib
 from ..vg_types import ROOT_PATH
 import os
 from os import PathLike
