@@ -26,6 +26,9 @@ class ModelWrapper:
     def __init__(self):
         return
     
+    def process_input(self, input):
+        raise NotImplementedError(NOT_IMPL_ERR_MSG)
+    
     def inference(self):
         raise NotImplementedError(NOT_IMPL_ERR_MSG)
     
