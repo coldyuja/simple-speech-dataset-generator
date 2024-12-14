@@ -17,8 +17,11 @@ from torio.io import CodecConfig
 class Result(TypedDict):
     reduce_noise: Any
 
+class NoiseReductionModels(Enum):
+    NOISEREDUCE = 'noisereduce'
+
 class CleaningAudioSetting(TypedDict):
-    reduce_noise_lib: str
+    reduce_noise_lib: NoiseReductionModels
     stationary: bool
 
 class CleaningAudio(AbstractPipelineElement):
@@ -42,20 +45,22 @@ class CleaningAudio(AbstractPipelineElement):
         if self.torch_device:
             tg = TG(sr=self.settings['sr'], 
                     nonstationary=not self.opt_settings['stationary']).to(self.torch_device)
+            self.input = self.input.to(self.torch_device)
             self.ret['reduce_noise'] = tg(self.input)
         else:
-            self.ret['reduce_noise'] = nr.reduce_noise(y=self.input, 
+            input = self.input.cpu().numpy()
+            self.ret['reduce_noise'] = nr.reduce_noise(y=input, 
                                                        sr=self.settings['sr'],
                                                        stationary=self.opt_settings['stationary'],
                                                        )
         self.latest_task = 'reduce_noise'
         return
     
-    def reduce_noise(self, lib: str | None = None) -> NoReturn:
+    def reduce_noise(self, lib: NoiseReductionModels | None = None) -> NoReturn:
         if lib is None:
             lib = self.opt_settings['reduce_noise_lib']
         match lib:
-            case 'noisereduce':
+            case NoiseReductionModels.NOISEREDUCE:
                 self._use_noisereduce()
             case _:
                 raise ValueError(f'Unknown lib name: {lib}')
@@ -63,6 +68,8 @@ class CleaningAudio(AbstractPipelineElement):
     
     def _execute(self):
         self.reduce_noise()
+        if not torch.is_tensor(self.ret[self.latest_task]):
+            self.ret[self.latest_task] = torch.tensor(self.ret[self.latest_task])
         return
     
     def get_result(self):
