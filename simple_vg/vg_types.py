@@ -14,6 +14,7 @@ class AudioSetting(TypedDict):
     sr: int | None
     mono: bool | None
     n_fft: int | None
+    hop_length: int | None
     window_size: int | None
     use_torch: bool = True
     opt_settings: Dict[Any, Any]

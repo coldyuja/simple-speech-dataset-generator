@@ -115,6 +115,9 @@ class SepReformerWrapper(ModelWrapper):
         model = model.to(self.device)
         return model
 
+    def process_input(self, input):
+        return
+
     def _test(self):
 
         return

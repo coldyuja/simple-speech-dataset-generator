@@ -70,3 +70,23 @@ def parse_yaml(path):
         return config_dict
     except FileNotFoundError:
         raise
+
+def fill_dict(src: dict , dst: dict, target_keys=None):
+    for key, value in src.items():
+        if (target_keys and key in target_keys) or not target_keys:
+            if not dst.get(key):
+                dst[key] = value
+
+
+class AttributeDummyClass:
+    def __init__(self, d: dict):
+        self.__dict__['inner'] = d
+
+    def __setattr__(self, name, value):
+        self.__dict__['inner'][name] = value
+
+    def __getattr__(self, name):
+        return self.__dict__['inner'].get(name)
+
+
+
