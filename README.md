@@ -1,5 +1,5 @@
 # simple-voice-dataset-generator
-
+### This repo is created by alternative project of final exam.
 ## Under construction.
 
 ### TODO List
