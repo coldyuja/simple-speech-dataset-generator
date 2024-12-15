@@ -139,7 +139,7 @@ class WhisperDataset(Dataset):
         data_i, sample_st, sample_ed = self.indice[index]
         return (data_i, self.input[data_i][..., sample_st:sample_ed])
     
-
+# whisper을 사용한 기본적인 inference 과정은 whisper github을 참고했음.
 class WhisperWrapper(ModelWrapper):
     def __init__(self, settings: WhisperSettings):
         self.settings = copy.deepcopy(settings)
