@@ -1,4 +1,4 @@
-# simple-voice-dataset-generator
+# simple-speech-dataset-generator
 
 ## 기말과제 제출용 Branch
 
