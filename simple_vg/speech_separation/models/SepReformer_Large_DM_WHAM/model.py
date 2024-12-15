@@ -1,3 +1,4 @@
+# 기존 model.py에서 미사용 Import 제거함.
 import torch
 from .modules.module import *
 
