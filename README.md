@@ -1,4 +1,4 @@
-# simple-voice-dataset-generator
+# simple-speech-dataset-generator
 ### This repo is created by alternative project of final exam.
 ## Under construction.
 
